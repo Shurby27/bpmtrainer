@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#101014" />
+  <title>BPM Trainer</title>
+  <style>
+    :root {
+      --bg: #101014;
+      --panel: #17171d;
+      --panel-2: #202027;
+      --panel-3: #2c2c35;
+      --text: #f5f7ff;
+      --muted: #b7b8c7;
+      --pink: #a54f72;
+      --pink-bright: #c06b91;
+      --cyan: #40d7ff;
+      --cyan-soft: rgba(64, 215, 255, 0.22);
+      --good: #69e38f;
+      --bad: #ff7272;
+      --shadow: rgba(0, 0, 0, 0.32);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      padding: calc(12px + var(--safe-top)) 14px calc(16px + var(--safe-bottom));
+    }
+
+    .app {
+      width: min(100%, 520px);
+      min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 28px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 34px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 4.7vw, 1.45rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .status-pill {
+      min-width: 104px;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 8px 10px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      white-space: nowrap;
+    }
+
+    .status-pill.listening {
+      color: var(--cyan);
+      border-color: rgba(64, 215, 255, 0.3);
+      box-shadow: 0 0 18px var(--cyan-soft);
+    }
+
+    .stage-card {
+      align-self: center;
+      background: #131318;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      box-shadow: 0 20px 44px var(--shadow);
+      padding: clamp(16px, 4vw, 24px);
+      width: 100%;
+    }
+
+    .display-top {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-family: "Courier New", ui-monospace, monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .tempo-hidden {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: clamp(1.25rem, 7vw, 2rem);
+      line-height: 1;
+      text-shadow: 0 0 16px rgba(64, 215, 255, 0.25);
+      user-select: none;
+    }
+
+    .tempo-hidden .note {
+      font-size: 0.72em;
+      transform: translateY(0.05em);
+    }
+
+    .tempo-hidden .hide-bars {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .hide-bars i {
+      width: clamp(10px, 4vw, 18px);
+      height: clamp(28px, 10vw, 48px);
+      border-radius: 4px;
+      background: linear-gradient(180deg, rgba(64,215,255,0.92), rgba(64,215,255,0.35));
+      opacity: 0.28;
+    }
+
+    .hide-bars i:nth-child(2) { opacity: 0.42; }
+    .hide-bars i:nth-child(3) { opacity: 0.31; }
+
+    .meter-label {
+      justify-self: center;
+      color: var(--cyan);
+      font-size: clamp(1.45rem, 8vw, 2.4rem);
+      font-weight: 800;
+      text-shadow: 0 0 16px rgba(64, 215, 255, 0.24);
+    }
+
+    .mini-tags {
+      justify-self: end;
+      display: flex;
+      gap: 8px;
+      transform: translateY(-14px);
+    }
+
+    .mini-tags span {
+      color: #1b0d15;
+      background: var(--pink-bright);
+      border-radius: 2px;
+      padding: 3px 5px;
+      font-size: 0.55rem;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      opacity: 0.88;
+    }
+
+    .beat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+
+    .beat-column {
+      display: grid;
+      grid-template-rows: repeat(3, minmax(34px, 1fr));
+      gap: 3px;
+      min-height: clamp(104px, 26vh, 160px);
+    }
+
+    .beat-cell {
+      border-radius: 5px;
+      background: #25252b;
+      transition: background 90ms linear, box-shadow 90ms linear, transform 90ms linear;
+    }
+
+    .beat-cell.bottom {
+      background: var(--pink);
+    }
+
+    .beat-column.active .beat-cell.top,
+    .beat-column.active .beat-cell.mid {
+      background: #3b3b44;
+    }
+
+    .beat-column.active .beat-cell.bottom {
+      background: linear-gradient(180deg, #a97c9c, var(--pink));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 0 18px rgba(192,107,145,0.22);
+    }
+
+    .beat-column.downbeat .beat-cell.top,
+    .beat-column.downbeat .beat-cell.mid {
+      background: #4d4d58;
+    }
+
+    .ticker-track {
+      position: relative;
+      height: clamp(48px, 11vh, 66px);
+      border-radius: 7px;
+      overflow: hidden;
+      background: #25252a;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025);
+    }
+
+    .ticker-line {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0%, transparent calc(25% - 1px), rgba(255,255,255,0.04) 25%, transparent calc(25% + 1px), transparent calc(50% - 1px), rgba(255,255,255,0.04) 50%, transparent calc(50% + 1px), transparent calc(75% - 1px), rgba(255,255,255,0.04) 75%, transparent calc(75% + 1px));
+      pointer-events: none;
+    }
+
+    .tick-block {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: clamp(16px, 5vw, 24px);
+      height: 100%;
+      border-radius: 4px;
+      background: var(--cyan);
+      box-shadow: 0 0 22px rgba(64, 215, 255, 0.48);
+      will-change: transform;
+      transform: translateX(0);
+    }
+
+    .feedback {
+      margin: 12px 0 0;
+      min-height: 52px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(0.95rem, 4.3vw, 1.1rem);
+      line-height: 1.25;
+    }
+
+    .feedback strong {
+      color: var(--text);
+      font-size: 1.06em;
+    }
+
+    .feedback .right { color: var(--good); }
+    .feedback .wrong { color: var(--bad); }
+
+    .controls {
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: 0 18px 36px var(--shadow);
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.24);
+      color: var(--text);
+      font: inherit;
+      font-size: 1.15rem;
+      font-weight: 800;
+      padding: 12px 12px;
+      outline: none;
+      text-align: center;
+      caret-color: var(--cyan);
+    }
+
+    input:focus {
+      border-color: rgba(64, 215, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(64, 215, 255, 0.10);
+    }
+
+    input:disabled {
+      opacity: 0.55;
+    }
+
+    .guess-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .guess-form label {
+      font-size: 0.9rem;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      min-height: 52px;
+      padding: 0 18px;
+      background: var(--cyan);
+      color: #061017;
+      font: inherit;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      box-shadow: 0 10px 24px rgba(64, 215, 255, 0.18);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+      transform: none;
+    }
+
+    .start-cover {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
+      background: rgba(12, 12, 16, 0.90);
+      backdrop-filter: blur(14px);
+    }
+
+    .start-card {
+      width: min(92vw, 420px);
+      border-radius: 24px;
+      background: #17171d;
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 26px 70px rgba(0,0,0,0.46);
+      padding: 22px;
+      text-align: center;
+    }
+
+    .start-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.45rem;
+    }
+
+    .start-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .start-card button {
+      width: 100%;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-height: 660px) {
+      body { padding-top: calc(8px + var(--safe-top)); }
+      .app { gap: 8px; }
+      .stage-card { padding: 12px; }
+      .beat-column { min-height: 92px; }
+      .feedback { min-height: 40px; margin-top: 8px; }
+      .controls { padding: 10px; }
+      input { padding: 9px 10px; }
+      button { min-height: 46px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="BPM Trainer">
+    <header>
+      <h1>BPM Trainer</h1>
+      <div id="statusPill" class="status-pill">Tap Start</div>
+    </header>
+
+    <section class="stage-card" aria-label="Hidden tempo ticker">
+      <div class="display-top" aria-hidden="true">
+        <div class="tempo-hidden">
+          <span class="note">♪</span>
+          <span class="hide-bars" title="BPM hidden">
+            <i></i><i></i><i></i>
+          </span>
+        </div>
+        <div class="meter-label">4/4</div>
+        <div class="mini-tags"><span>T.S.</span><span>SUB DIV.</span></div>
+      </div>
+
+      <div class="beat-grid" aria-hidden="true">
+        <div class="beat-column" data-beat="0"><div class="beat-cell top"></div><div class="beat-cell mid"></div><div class="beat-cell bottom"></div></div>
+        <div class="beat-column" data-beat="1"><div class="beat-cell top"></div><div class="beat-cell mid"></div><div class="beat-cell bottom"></div></div>
+        <div class="beat-column" data-beat="2"><div class="beat-cell top"></div><div class="beat-cell mid"></div><div class="beat-cell bottom"></div></div>
+        <div class="beat-column" data-beat="3"><div class="beat-cell top"></div><div class="beat-cell mid"></div><div class="beat-cell bottom"></div></div>
+      </div>
+
+      <div id="tickerTrack" class="ticker-track" aria-hidden="true">
+        <div class="ticker-line"></div>
+        <div id="tickBlock" class="tick-block"></div>
+      </div>
+
+      <div id="feedback" class="feedback" aria-live="polite">Listen, guess the BPM, then submit.</div>
+    </section>
+
+    <section class="controls" aria-label="BPM controls">
+      <div class="range-row">
+        <label>Min BPM
+          <input id="minBpm" type="number" inputmode="numeric" pattern="[0-9]*" min="20" max="300" step="1" value="60" autocomplete="off" />
+        </label>
+        <label>Max BPM
+          <input id="maxBpm" type="number" inputmode="numeric" pattern="[0-9]*" min="20" max="300" step="1" value="180" autocomplete="off" />
+        </label>
+      </div>
+
+      <form id="guessForm" class="guess-form">
+        <label>Your BPM Guess
+          <input id="guessInput" type="number" inputmode="numeric" pattern="[0-9]*" min="20" max="300" step="1" placeholder="Type BPM" autocomplete="off" enterkeyhint="done" disabled />
+        </label>
+        <button id="submitButton" type="submit" disabled>Submit</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="startCover" class="start-cover">
+    <div class="start-card">
+      <h2>BPM Trainer</h2>
+      <p>Tap once to start the ticking sound. The tempo stays hidden until you submit your guess.</p>
+      <button id="startButton" type="button">Start Training</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const DEFAULT_MIN = 60;
+      const DEFAULT_MAX = 180;
+      const MIN_ALLOWED = 20;
+      const MAX_ALLOWED = 300;
+      const BEATS_PER_BAR = 4;
+      const FEEDBACK_MS = 3000;
+      const SCHEDULE_AHEAD_SECONDS = 0.12;
+      const SCHEDULER_INTERVAL_MS = 25;
+      const EXACT_TOLERANCE = 0;
+
+      const els = {
+        minBpm: document.getElementById('minBpm'),
+        maxBpm: document.getElementById('maxBpm'),
+        guessInput: document.getElementById('guessInput'),
+        guessForm: document.getElementById('guessForm'),
+        submitButton: document.getElementById('submitButton'),
+        feedback: document.getElementById('feedback'),
+        statusPill: document.getElementById('statusPill'),
+        tickBlock: document.getElementById('tickBlock'),
+        tickerTrack: document.getElementById('tickerTrack'),
+        beatColumns: Array.from(document.querySelectorAll('.beat-column')),
+        startCover: document.getElementById('startCover'),
+        startButton: document.getElementById('startButton')
+      };
+
+      let audioCtx = null;
+      let schedulerId = null;
+      let animationId = null;
+      let running = false;
+      let acceptingAnswers = false;
+      let currentBpm = null;
+      let lastBpm = null;
+      let beatInterval = 0.5;
+      let barStartTime = 0;
+      let nextTickTime = 0;
+      let scheduledBeatIndex = 0;
+      let feedbackTimer = null;
+      let audioUnlocked = false;
+
+      function clampNumber(value, min, max, fallback) {
+        const n = Number.parseInt(String(value).replace(/\D/g, ''), 10);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.min(max, Math.max(min, n));
+      }
+
+      function sanitizeNumericInput(input) {
+        const clean = input.value.replace(/\D/g, '');
+        if (input.value !== clean) input.value = clean;
+      }
+
+      function getRange() {
+        let min = clampNumber(els.minBpm.value, MIN_ALLOWED, MAX_ALLOWED, DEFAULT_MIN);
+        let max = clampNumber(els.maxBpm.value, MIN_ALLOWED, MAX_ALLOWED, DEFAULT_MAX);
+
+        if (min > max) {
+          const tmp = min;
+          min = max;
+          max = tmp;
+        }
+
+        els.minBpm.value = min;
+        els.maxBpm.value = max;
+        return { min, max };
+      }
+
+      function randomBpm() {
+        const { min, max } = getRange();
+        const span = max - min + 1;
+        let bpm = Math.floor(Math.random() * span) + min;
+
+        if (span > 1 && bpm === lastBpm) {
+          bpm = min + ((bpm - min + 1) % span);
+        }
+
+        lastBpm = bpm;
+        return bpm;
+      }
+
+      function ensureAudioContext() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioCtx;
+      }
+
+      function scheduleClick(time, accented) {
+        if (!audioCtx) return;
+
+        const master = audioCtx.createGain();
+        master.gain.setValueAtTime(0.0001, time);
+        master.gain.exponentialRampToValueAtTime(accented ? 0.88 : 0.58, time + 0.002);
+        master.gain.exponentialRampToValueAtTime(0.0001, time + 0.055);
+        master.connect(audioCtx.destination);
+
+        const click = audioCtx.createOscillator();
+        click.type = 'square';
+        click.frequency.setValueAtTime(accented ? 1760 : 1320, time);
+        click.frequency.exponentialRampToValueAtTime(accented ? 880 : 720, time + 0.045);
+        click.connect(master);
+        click.start(time);
+        click.stop(time + 0.06);
+
+        const body = audioCtx.createOscillator();
+        const bodyGain = audioCtx.createGain();
+        body.type = 'triangle';
+        body.frequency.setValueAtTime(accented ? 260 : 220, time);
+        bodyGain.gain.setValueAtTime(accented ? 0.18 : 0.11, time);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.045);
+        body.connect(bodyGain).connect(audioCtx.destination);
+        body.start(time);
+        body.stop(time + 0.05);
+      }
+
+      function scheduler() {
+        if (!running || !audioCtx) return;
+
+        while (nextTickTime < audioCtx.currentTime + SCHEDULE_AHEAD_SECONDS) {
+          scheduleClick(nextTickTime, scheduledBeatIndex % BEATS_PER_BAR === 0);
+          nextTickTime += beatInterval;
+          scheduledBeatIndex += 1;
+        }
+      }
+
+      function draw() {
+        if (!running || !audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const elapsed = Math.max(0, now - barStartTime);
+        const barDuration = beatInterval * BEATS_PER_BAR;
+        const beatInBar = Math.floor(elapsed / beatInterval) % BEATS_PER_BAR;
+        const progress = (elapsed % barDuration) / barDuration;
+
+        const trackWidth = els.tickerTrack.clientWidth;
+        const blockWidth = els.tickBlock.clientWidth;
+        const x = Math.max(0, Math.min(trackWidth - blockWidth, progress * trackWidth));
+        els.tickBlock.style.transform = `translateX(${x}px)`;
+
+        els.beatColumns.forEach((column, index) => {
+          column.classList.toggle('active', index === beatInBar);
+          column.classList.toggle('downbeat', index === 0 && beatInBar === 0);
+        });
+
+        animationId = requestAnimationFrame(draw);
+      }
+
+      function stopSchedulerOnly() {
+        if (schedulerId) {
+          clearInterval(schedulerId);
+          schedulerId = null;
+        }
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      }
+
+      function startClockForCurrentBpm() {
+        stopSchedulerOnly();
+        beatInterval = 60 / currentBpm;
+        const startAt = audioCtx.currentTime + 0.06;
+        barStartTime = startAt;
+        nextTickTime = startAt;
+        scheduledBeatIndex = 0;
+        schedulerId = setInterval(scheduler, SCHEDULER_INTERVAL_MS);
+        scheduler();
+        animationId = requestAnimationFrame(draw);
+      }
+
+      function setAnswerEnabled(enabled) {
+        acceptingAnswers = enabled;
+        els.guessInput.disabled = !enabled;
+        els.submitButton.disabled = !enabled;
+      }
+
+      function newChallenge() {
+        if (!audioCtx) return;
+        if (feedbackTimer) {
+          clearTimeout(feedbackTimer);
+          feedbackTimer = null;
+        }
+
+        currentBpm = randomBpm();
+        running = true;
+        setAnswerEnabled(true);
+        els.guessInput.value = '';
+        els.feedback.textContent = 'Listen, guess the BPM, then submit.';
+        els.statusPill.textContent = 'Listening';
+        els.statusPill.classList.add('listening');
+        startClockForCurrentBpm();
+
+        setTimeout(() => {
+          if (acceptingAnswers) els.guessInput.focus({ preventScroll: true });
+        }, 120);
+      }
+
+      async function startTraining() {
+        ensureAudioContext();
+        await audioCtx.resume();
+        audioUnlocked = true;
+        els.startCover.classList.add('hidden');
+        newChallenge();
+      }
+
+      function submitGuess(event) {
+        event.preventDefault();
+        if (!acceptingAnswers || !running) return;
+
+        const guess = clampNumber(els.guessInput.value, MIN_ALLOWED, MAX_ALLOWED, NaN);
+        if (!Number.isFinite(guess)) {
+          els.feedback.textContent = 'Type a BPM guess first.';
+          els.guessInput.focus({ preventScroll: true });
+          return;
+        }
+
+        setAnswerEnabled(false);
+        const offBy = Math.abs(guess - currentBpm);
+        const correct = offBy <= EXACT_TOLERANCE;
+        els.statusPill.textContent = 'Answer';
+        els.statusPill.classList.remove('listening');
+
+        els.feedback.innerHTML = correct
+          ? `<div><strong class="right">Correct</strong><br>The BPM was <strong>${currentBpm}</strong>.</div>`
+          : `<div><strong class="wrong">Wrong</strong><br>The BPM was <strong>${currentBpm}</strong>. You guessed <strong>${guess}</strong>, off by <strong>${offBy}</strong>.</div>`;
+
+        feedbackTimer = setTimeout(() => {
+          if (audioUnlocked) newChallenge();
+        }, FEEDBACK_MS);
+      }
+
+      function resetDefaultRangeOnOpen() {
+        els.minBpm.value = DEFAULT_MIN;
+        els.maxBpm.value = DEFAULT_MAX;
+      }
+
+      [els.minBpm, els.maxBpm, els.guessInput].forEach(input => {
+        input.addEventListener('input', () => sanitizeNumericInput(input));
+        input.addEventListener('blur', () => {
+          if (input === els.minBpm || input === els.maxBpm) getRange();
+        });
+      });
+
+      els.startButton.addEventListener('click', startTraining);
+      els.guessForm.addEventListener('submit', submitGuess);
+
+      document.addEventListener('visibilitychange', async () => {
+        if (!audioCtx) return;
+        if (document.hidden) {
+          stopSchedulerOnly();
+          await audioCtx.suspend();
+        } else if (audioUnlocked) {
+          await audioCtx.resume();
+          if (running && acceptingAnswers) startClockForCurrentBpm();
+        }
+      });
+
+      resetDefaultRangeOnOpen();
+    })();
+  </script>
+</body>
+</html>
