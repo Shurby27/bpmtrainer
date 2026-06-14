@@ -7,6 +7,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#101014" />
+  <meta name="apple-mobile-web-app-title" content="BPM Trainer" />
+  <link rel="apple-touch-icon" sizes="180x180" href="app-icon.png" />
+  <link rel="icon" type="image/png" sizes="180x180" href="app-icon.png" />
+  <link rel="shortcut icon" href="app-icon.png" />
   <title>BPM Trainer</title>
   <style>
     :root {
@@ -586,13 +590,21 @@
 
         const now = audioCtx.currentTime;
         const elapsed = Math.max(0, now - barStartTime);
-        const barDuration = beatInterval * BEATS_PER_BAR;
-        const beatInBar = Math.floor(elapsed / beatInterval) % BEATS_PER_BAR;
-        const progress = (elapsed % barDuration) / barDuration;
+        const absoluteBeat = Math.floor(elapsed / beatInterval);
+        const beatInBar = absoluteBeat % BEATS_PER_BAR;
+        const beatProgress = (elapsed % beatInterval) / beatInterval;
 
         const trackWidth = els.tickerTrack.clientWidth;
         const blockWidth = els.tickBlock.clientWidth;
-        const x = Math.max(0, Math.min(trackWidth - blockWidth, progress * trackWidth));
+        const maxX = Math.max(0, trackWidth - blockWidth);
+
+        // One beat = one full trip to the opposite edge.
+        // Even beats move left→right, odd beats move right→left.
+        const movingRight = absoluteBeat % 2 === 0;
+        const x = movingRight
+          ? beatProgress * maxX
+          : (1 - beatProgress) * maxX;
+
         els.tickBlock.style.transform = `translateX(${x}px)`;
 
         els.beatColumns.forEach((column, index) => {
